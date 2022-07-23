@@ -2,17 +2,25 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
+import db from "../prisma/db";
+
+type Flower = {
+  id: number;
+  name: string;
+};
 
 export async function getServerSideProps() {
+  const flowers: Flower[] = await db.flowers.findMany({
+    select: { id: true, name: true },
+  });
   return {
     props: {
-      name: "John Doe",
+      flowers: flowers,
     },
   };
 }
 
-const Home: NextPage = (props) => {
-  console.log(props);
+function Page(props: { flowers: Flower[] }) {
   return (
     <div className={styles.container}>
       <Head>
@@ -21,7 +29,13 @@ const Home: NextPage = (props) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}></main>
+      <main className={styles.main}>
+        <ol style={{ fontSize: 30 }}>
+          {props.flowers.map((flower) => (
+            <li key={flower.id}>{flower.name}</li>
+          ))}
+        </ol>
+      </main>
 
       <footer className={styles.footer}>
         <a
@@ -37,6 +51,6 @@ const Home: NextPage = (props) => {
       </footer>
     </div>
   );
-};
+}
 
-export default Home;
+export default Page;
