@@ -4,6 +4,7 @@ import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import db from "../prisma/db";
 import supabase from "../hooks/supabase";
+import { useEffect } from "react";
 
 type Flower = {
   id: number;
@@ -22,7 +23,15 @@ export async function getServerSideProps() {
 }
 
 function Page(props: { flowers: Flower[] }) {
-  supabase.from("flowers").select("id, name").then(console.log);
+  useEffect(() => {
+    console.log("Subscription Created!");
+    const mySubscription = supabase
+      .from("flowers")
+      .on("INSERT", (payload) => {
+        console.log("Change received!", payload);
+      })
+      .subscribe();
+  }, []);
   return (
     <div className={styles.container}>
       <Head>
