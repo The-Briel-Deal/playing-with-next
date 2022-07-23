@@ -3,6 +3,7 @@ import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import db from "../prisma/db";
+import supabase from "../hooks/supabase";
 
 type Flower = {
   id: number;
@@ -21,6 +22,7 @@ export async function getServerSideProps() {
 }
 
 function Page(props: { flowers: Flower[] }) {
+  supabase.from("flowers").select("id, name").then(console.log);
   return (
     <div className={styles.container}>
       <Head>
