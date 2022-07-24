@@ -1,10 +1,13 @@
-import type { NextPage } from "next";
+import type {
+  SupabaseRealtimePayload,
+  RealtimeSubscription,
+} from "@supabase/supabase-js";
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import db from "../prisma/db";
 import supabase from "../hooks/supabase";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Flower = {
   id: number;
@@ -23,15 +26,43 @@ export async function getServerSideProps() {
 }
 
 function Page(props: { flowers: Flower[] }) {
-  useEffect(() => {
-    console.log("Subscription Created!");
-    const mySubscription = supabase
+  const [flowers, setFlowers] = useState<Flower[]>([...props.flowers]);
+  const [textfieldState, setTextfieldState] = useState("");
+  function handleTextfieldChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setTextfieldState(e.target.value);
+  }
+  function handleSubmit(e: React.FormEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    supabase
       .from("flowers")
-      .on("INSERT", (payload) => {
-        console.log("Change received!", payload);
-      })
-      .subscribe();
-  }, []);
+      .insert({ name: textfieldState })
+      .then(() => {
+        setTextfieldState("");
+      });
+  }
+  useEffect(() => {
+    const createSubscription = () => {
+      return supabase
+        .from("flowers")
+        .on("INSERT", (payload: SupabaseRealtimePayload<any>) => {
+          setFlowers(() => {
+            return [...flowers, payload.new];
+          });
+        })
+        .subscribe();
+    };
+    let mySubscription: RealtimeSubscription | null = null;
+    console.log("subscribing to new flowers");
+    if (!mySubscription) {
+      mySubscription = createSubscription();
+    }
+    return () => {
+      console.log("unsubscribing from new flowers");
+      if (mySubscription) {
+        mySubscription.unsubscribe();
+      }
+    };
+  });
   return (
     <div className={styles.container}>
       <Head>
@@ -42,10 +73,16 @@ function Page(props: { flowers: Flower[] }) {
 
       <main className={styles.main}>
         <ol style={{ fontSize: 30 }}>
-          {props.flowers.map((flower) => (
+          {flowers.map((flower) => (
             <li key={flower.id}>{flower.name}</li>
           ))}
         </ol>
+        <input
+          type="text"
+          onChange={handleTextfieldChange}
+          value={textfieldState}
+        />{" "}
+        <button onClick={handleSubmit}>Add</button>
       </main>
 
       <footer className={styles.footer}>
